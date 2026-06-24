@@ -41,15 +41,17 @@ class R3:
             self.y * other.z - self.z * other.y,
             self.z * other.x - self.x * other.z,
             self.x * other.y - self.y * other.x)
+
     def is_good(self):
-        #Точка 'хорошая', если строго вне единичной сферы.
+        # Точка 'хорошая', если строго вне единичной сферы.
         return (self.x ** 2 + self.y ** 2 + self.z ** 2) > 1.0
 
     def proj_dist(self, other):
-        #Длина проекции отрезка на плоскость XY.
+        # Длина проекции отрезка на плоскость XY.
         dx = self.x - other.x
         dy = self.y - other.y
         return (dx ** 2 + dy ** 2) ** 0.5
+
 
 if __name__ == "__main__":  # pragma: no cover
     x = R3(1.0, 1.0, 1.0)
