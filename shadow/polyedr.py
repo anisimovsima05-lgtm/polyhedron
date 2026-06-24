@@ -29,7 +29,8 @@ class Segment:
     def subtraction(self, other):
         return [Segment(
             self.beg, self.fin if self.fin < other.beg else other.beg),
-            Segment(self.beg if self.beg > other.fin else other.fin, self.fin)]
+            Segment(self.beg if self.beg > other.fin else other.fin,
+                    self.fin)]
 
 
 class Edge:
@@ -80,12 +81,15 @@ class Edge:
         if f0 < 0.0 and f1 < 0.0:
             return Segment(Edge.SBEG, Edge.SFIN)
         x = - f0 / (f1 - f0)
-        return Segment(Edge.SBEG, x) if f0 < 0.0 else Segment(x, Edge.SFIN)
+        return Segment(Edge.SBEG, x) if f0 < 0.0 else Segment(x,
+                                                              Edge.SFIN)
+
     def has_good_vertex(self):
         return self.orig_beg.is_good() or self.orig_fin.is_good()
 
     def get_proj_length(self):
         return self.beg.proj_dist(self.fin)
+
 
 class Facet:
     """ Грань полиэдра """
@@ -115,7 +119,8 @@ class Facet:
     def _vert(self, k):
         n = (self.vertexes[k] - self.vertexes[k - 1]).cross(Polyedr.V)
         return n * \
-            (-1.0) if n.dot(self.vertexes[k - 1] - self.center()) < 0.0 else n
+            (-1.0) if n.dot(self.vertexes[k - 1] - self.center()) < 0.0 \
+            else n
 
     # Центр грани
     def center(self):
@@ -133,55 +138,61 @@ class Polyedr:
 
         # списки вершин, рёбер и граней полиэдра
         self.vertexes, self.edges, self.facets = [], [], []
-        
-        self.orig_vertexes = [] # исходные вершины до трансформаций
+        self.orig_vertexes = []  # исходные вершины до трансформаций
 
         # список строк файла
         with open(file) as f:
             for i, line in enumerate(f):
                 if i == 0:
-                    # обрабатываем первую строку; buf - вспомогательный массив
+                    # обрабатываем первую строку; buf - вспомогательный
+                    # массив
                     buf = line.split()
                     # коэффициент гомотетии
                     c = float(buf.pop(0))
                     # углы Эйлера, определяющие вращение
-                    alpha, beta, gamma = (float(x) * pi / 180.0 for x in buf)
+                    alpha, beta, gamma = (
+                        float(x) * pi / 180.0 for x in buf)
                 elif i == 1:
-                    # во второй строке число вершин, граней и рёбер полиэдра
+                    # во второй строке число вершин, граней и рёбер
+                    # полиэдра
                     nv, nf, ne = (int(x) for x in line.split())
                 elif i < nv + 2:
+                    # задание всех вершин полиэдра
                     x, y, z = (float(x) for x in line.split())
-                    # сохраняем исходную вершину
                     orig_v = R3(x, y, z)
                     self.orig_vertexes.append(orig_v)
-                    # Трансформируем и сохраняем
-                    self.vertexes.append(orig_v.rz(alpha).ry(beta).rz(gamma) * c)
+                    self.vertexes.append(
+                        orig_v.rz(alpha).ry(beta).rz(gamma) * c)
                 else:
+                    # вспомогательный массив
                     buf = line.split()
+                    # количество вершин очередной грани
                     size = int(buf.pop(0))
-                    # собираем и исходные, и трансформированные вершины грани
-                    vertexes = list(self.vertexes[int(n) - 1] for n in buf)
-                    orig_vertexes = list(self.orig_vertexes[int(n) - 1] for n in buf)
-                    # передаём оба варианта вершин в ребро
+                    # массив вершин этой грани
+                    vertexes = list(
+                        self.vertexes[int(n) - 1] for n in buf)
+                    orig_vertexes = list(
+                        self.orig_vertexes[int(n) - 1] for n in buf)
+                    # задание рёбер грани
                     for n in range(size):
                         self.edges.append(Edge(
                             vertexes[n - 1], vertexes[n],
-                            orig_vertexes[n - 1], orig_vertexes[n]
-                        ))
+                            orig_vertexes[n - 1],
+                            orig_vertexes[n]))
+                    # задание самой грани
                     self.facets.append(Facet(vertexes))
 
     def calc_good_edges_proj_sum(self):
-        #Сумма длин проекций уникальных рёбер с хотя бы одной 'хорошей' точкой.
         seen = set()
         total_length = 0.0
         for edge in self.edges:
-            # Создаём ключ ребра без учёта направления
             key = tuple(sorted([id(edge.beg), id(edge.fin)]))
             if key not in seen:
                 seen.add(key)
                 if edge.has_good_vertex():
                     total_length += edge.get_proj_length()
         return total_length
+
     # Метод изображения полиэдра
     def draw(self, tk):  # pragma: no cover
         tk.clean()
