@@ -40,6 +40,8 @@ class Edge:
     # Параметры конструктора: начало и конец ребра (точки в R3)
     def __init__(self, beg, fin):
         self.beg, self.fin = beg, fin
+        self.orig_beg = orig_beg if orig_beg is not None else beg
+        self.orig_fin = orig_fin if orig_fin is not None else fin
         # Список «просветов»
         self.gaps = [Segment(Edge.SBEG, Edge.SFIN)]
 
@@ -80,7 +82,7 @@ class Edge:
         x = - f0 / (f1 - f0)
         return Segment(Edge.SBEG, x) if f0 < 0.0 else Segment(x, Edge.SFIN)
     def has_good_vertex(self):
-        return self.beg.is_good() or self.fin.is_good()
+        return self.orig_beg.is_good() or self.orig_fin.is_good()
 
     def get_proj_length(self):
         return self.beg.proj_dist(self.fin)
@@ -131,6 +133,8 @@ class Polyedr:
 
         # списки вершин, рёбер и граней полиэдра
         self.vertexes, self.edges, self.facets = [], [], []
+        
+        self.orig_vertexes = [] # исходные вершины до трансформаций
 
         # список строк файла
         with open(file) as f:
@@ -146,23 +150,28 @@ class Polyedr:
                     # во второй строке число вершин, граней и рёбер полиэдра
                     nv, nf, ne = (int(x) for x in line.split())
                 elif i < nv + 2:
-                    # задание всех вершин полиэдра
                     x, y, z = (float(x) for x in line.split())
-                    self.vertexes.append(R3(x, y, z).rz(
-                        alpha).ry(beta).rz(gamma) * c)
+                    # сохраняем исходную вершину
+                    orig_v = R3(x, y, z)
+                    self.orig_vertexes.append(orig_v)
+                    # Трансформируем и сохраняем
+                    self.vertexes.append(orig_v.rz(alpha).ry(beta).rz(gamma) * c)
                 else:
-                    # вспомогательный массив
                     buf = line.split()
-                    # количество вершин очередной грани
                     size = int(buf.pop(0))
-                    # массив вершин этой грани
+                    # собираем и исходные, и трансформированные вершины грани
                     vertexes = list(self.vertexes[int(n) - 1] for n in buf)
-                    # задание рёбер грани
+                    orig_vertexes = list(self.orig_vertexes[int(n) - 1] for n in buf)
+                    # передаём оба варианта вершин в ребро
                     for n in range(size):
-                        self.edges.append(Edge(vertexes[n - 1], vertexes[n]))
-                    # задание самой грани
+                        self.edges.append(Edge(
+                            vertexes[n - 1], vertexes[n],
+                            orig_vertexes[n - 1], orig_vertexes[n]
+                        ))
                     self.facets.append(Facet(vertexes))
+
     def calc_good_edges_proj_sum(self):
+        #Сумма длин проекций рёбер, у которых хотя бы один конец — хорошая точка.
         total_length = 0.0
         for edge in self.edges:
             if edge.has_good_vertex():
