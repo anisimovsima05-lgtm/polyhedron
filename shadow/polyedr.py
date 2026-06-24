@@ -38,7 +38,7 @@ class Edge:
     SBEG, SFIN = 0.0, 1.0
 
     # Параметры конструктора: начало и конец ребра (точки в R3)
-    def __init__(self, beg, fin):
+    def __init__(self, beg, fin, orig_beg=None, orig_fin=None):
         self.beg, self.fin = beg, fin
         self.orig_beg = orig_beg if orig_beg is not None else beg
         self.orig_fin = orig_fin if orig_fin is not None else fin
@@ -171,11 +171,16 @@ class Polyedr:
                     self.facets.append(Facet(vertexes))
 
     def calc_good_edges_proj_sum(self):
-        #Сумма длин проекций рёбер, у которых хотя бы один конец — хорошая точка.
+        #Сумма длин проекций уникальных рёбер с хотя бы одной 'хорошей' точкой.
+        seen = set()
         total_length = 0.0
         for edge in self.edges:
-            if edge.has_good_vertex():
-                total_length += edge.get_proj_length()
+            # Создаём ключ ребра без учёта направления
+            key = tuple(sorted([id(edge.beg), id(edge.fin)]))
+            if key not in seen:
+                seen.add(key)
+                if edge.has_good_vertex():
+                    total_length += edge.get_proj_length()
         return total_length
     # Метод изображения полиэдра
     def draw(self, tk):  # pragma: no cover
