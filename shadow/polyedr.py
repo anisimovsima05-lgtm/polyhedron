@@ -79,7 +79,11 @@ class Edge:
             return Segment(Edge.SBEG, Edge.SFIN)
         x = - f0 / (f1 - f0)
         return Segment(Edge.SBEG, x) if f0 < 0.0 else Segment(x, Edge.SFIN)
+    def has_good_vertex(self):
+        return self.beg.is_good() or self.fin.is_good()
 
+    def get_proj_length(self):
+        return self.beg.proj_dist(self.fin)
 
 class Facet:
     """ Грань полиэдра """
@@ -158,7 +162,12 @@ class Polyedr:
                         self.edges.append(Edge(vertexes[n - 1], vertexes[n]))
                     # задание самой грани
                     self.facets.append(Facet(vertexes))
-
+    def calc_good_edges_proj_sum(self):
+        total_length = 0.0
+        for edge in self.edges:
+            if edge.has_good_vertex():
+                total_length += edge.get_proj_length()
+        return total_length
     # Метод изображения полиэдра
     def draw(self, tk):  # pragma: no cover
         tk.clean()
